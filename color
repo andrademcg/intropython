@@ -1,0 +1,75 @@
+def avaliacao():
+  import pandas as pd
+  import numpy as np
+  import seaborn as sns
+  import matplotlib.pyplot as plt
+  import math
+  import plotly.express as px
+  import warnings
+  warnings.simplefilter(action='ignore', category=FutureWarning)
+  df = pd.read_excel("/content/drive/MyDrive/LAB_Geral.xlsx",sheet_name='Geral') #importa arquivo
+  df["a"] = pd.to_numeric(df["a"], downcast="float") # Converte a float as colunas
+  df["L"] = pd.to_numeric(df["L"], downcast="float") # Converte a float as colunas
+  df["b"] = pd.to_numeric(df["b"], downcast="float") # Converte a float as colunas
+  df['Aval'] = df['Aval'].str.replace(' \(','_') # substitui simbolos
+  df['Aval'] = df['Aval'].str.replace(')','') # substitui simbolos
+
+  df.drop(['1'],axis = 1, inplace = True) #remove coluna'1'
+
+  prod=np.array(df['Produto'].unique()) #lista val únicos produtos
+  tip=np.array(df['Classificação'].unique()) #lista val unicos de classificações
+  produto=input("Qual o produto da lista:{}".format(prod)) #solicita qual o tipo de produto
+  tipo=input("Qual Classificação da Lista:{}".format(tip))# solicita qual a classificação
+  l=float(input("Coordenada L?")) #solicita qual a coordenada L
+  a=float(input("Coordenada a?"))#solicita qual a coordenada a
+  b=float(input("Coordenada b?"))#solicita qual a coordenada b
+
+
+  df=df[df['Produto']==produto] #filtra df pelos input de prod.
+  df=df[df['Classificação']==tipo] #filtra df pelo input de classif.
+  df=df.reset_index(drop=True) #reseta o index do df
+  df2 = pd.DataFrame(columns=['eucl_dis']) # cria a coluna eucl_dis
+  for i in range(len(df['a'])): #calcula eucl_dis para cada linha
+    l2=float(df.iloc[[i],[2]].to_numpy())
+    a2=float(df.iloc[[i],[3]].to_numpy())
+    b2=float(df.iloc[[i],[4]].to_numpy())
+    difl=(l2-l)**2
+    difa=(a2-a)**2
+    difb=(b2-b)**2
+    sq=(difl+difa+difb)**(0.5)
+    df2 = df2.append({'eucl_dis': sq}, ignore_index=True)
+
+  df['eucl_dis']=df2['eucl_dis'] #cria a coluna eucl no df original
+
+  df=df.sort_values('eucl_dis') #classifica
+  cls=df['eucl_dis'].unique() #retorna valores únicos
+  cls = list(dict.fromkeys(cls)) #converte o dicionário em lista
+
+  df['Aval']=df['Aval'].str.replace('Entre range','Entre os ranges') # substitui 
+  df['Aval'].unique() #valores únicos para avaliação
+
+  l1=np.array(l) # transforma em np array
+  a1=np.array(a) # transforma em np array
+  b1=np.array(b) # transforma em np array
+  hist=df #create df hist
+  knn=df[df['eucl_dis']<=cls[2]] #df knn contains only top3 lowest eucl dist. 
+  knnnd=knn[['L','a','b','Aval']] #knnnd contains only the selecteds columns of knn df
+  knnnd=knnnd.drop_duplicates() #duplicates are removed from knnnd df
+  knnnd['count']=1 #create a column of count
+  knnnd.drop(['L', 'a','b'], axis = 1, inplace = True) #drop the index
+  pvt=knnnd.pivot_table(aggfunc='sum',columns='Aval') #pivot knnd data summing by the column aval
+  pvt=pvt.T #transpose pvt
+
+  if 'Entre os ranges' in pvt.index: #calculate er that is "entre os ranges"
+    er=float(pvt.loc[['Entre os ranges',],'count']) #converting 
+  else:
+    er=0
+  scl=pvt['count'].sum()
+  perc=er/scl
+  r1=hist[hist['Aval']=='Entre os ranges']
+  r2=hist[hist['Aval']=='Range máximo']
+  r3=hist[hist['Aval']=='Fora do range_mais claro']
+  r4=hist[hist['Aval']=='Entre os rangess_outro tom']
+  r5=hist[hist['Aval']=='Fora do range_mais escuro']
+  r6=hist[hist['Aval']=='Range mínimo']
+  r7=hist[hist['Aval']=='Fora do range_mais claro outro tom']
